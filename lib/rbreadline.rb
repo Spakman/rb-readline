@@ -6082,6 +6082,12 @@ module RbReadline
       scan = 0
       pass_next = false
       while scan < _end
+        if !@rl_byte_oriented
+          scan = _rl_find_next_mbchar(@rl_line_buffer, scan, 1, MB_FIND_ANY)
+        else
+          scan += 1
+        end
+
         if (pass_next)
           pass_next = false
           next
@@ -6118,11 +6124,6 @@ module RbReadline
           else
             found_quote |= RL_QF_OTHER_QUOTE
           end
-        end
-        if !@rl_byte_oriented
-          scan = _rl_find_next_mbchar(@rl_line_buffer, scan, 1, MB_FIND_ANY)
-        else
-          scan += 1
         end
       end
     end
