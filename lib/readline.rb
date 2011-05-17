@@ -110,6 +110,10 @@ module Readline
       @completion_case_fold
    end
 
+   # A wrapper method that calls the set @completion_proc. If no
+   # @completion_proc is set, this method returns nil which causes the default
+   # completer mechanism to be called.
+   #
    # Returns nil if no matches are found or an array of strings:
    #
    #   [0] is the replacement for text
@@ -119,62 +123,51 @@ module Readline
    # The possible matches should not include [0].
    #
    # If this method sets RbReadline.rl_attempted_completion_over to true,
-   # then the default completion function will not be called when this
+   # then the default completion method will not be called when this
    # function returns nil.
    def self.readline_attempted_completion_function(text,start,_end)
-      proc = @completion_proc
-      return nil if proc.nil?
+      return nil if @completion_proc.nil?
 
       RbReadline.rl_attempted_completion_over = true
 
-      case_fold = @completion_case_fold
-      ary = proc.call(text)
-      if ary.class != Array
-         ary = Array(ary)
+      matches = @completion_proc.call(text)
+      if matches.class != Array
+         matches = Array(matches)
       else
-         ary.compact!
+         matches.compact!
       end
 
-      matches = ary.length
-      return nil if (matches == 0)
-      result = Array.new(matches+2)
-      for i in 0 ... matches
-         result[i+1] = ary[i].dup
-      end
-      result[matches+1] = nil
+      num_matches = matches.size
+      return nil if num_matches == 0
 
-      if(matches==1)
-         result[0] = result[1].dup
-         result[1] = nil
+      if num_matches == 1
+         [ matches.first, nil, nil ]
       else
+         matches.unshift nil
+         matches << nil
+
          i = 1
-         low = 100000
-
-         while (i < matches)
-            if (case_fold)
+         while i < num_matches
+            if @completion_case_fold
                si = 0
-               while ((c1 = result[i][si,1].downcase) &&
-                  (c2 = result[i + 1][si,1].downcase))
-                  break if (c1 != c2)
+               while ((c1 = matches[i][si,1].downcase) &&
+                      (c2 = matches[i+1][si,1].downcase))
+                  break if c1 != c2
                   si += 1
                end
             else
                si = 0
-               while ((c1 = result[i][si,1]) &&
-                  (c2 = result[i + 1][si,1]))
-                  break if (c1 != c2)
+               while ((c1 = matches[i][si,1]) &&
+                      (c2 = matches[i+1][si,1]))
+                  break if c1 != c2
                   si += 1
                end
             end
-            if (low > si)
-               low = si
-            end
-            i+=1
+            i += 1
          end
-         result[0] = result[1][0,low]
+         matches[0] = matches[1][0,si]
+         matches
       end
-
-      result
    end
 
    # Sets vi editing mode.

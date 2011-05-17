@@ -143,6 +143,7 @@ class TC_Readline < Test::Unit::TestCase
      Readline.module_eval do
        @completion_proc = nil
      end
+     Readline.completion_case_fold = false
    end
 
    def test_attempted_comp_func_removes_replacement_from_possible_matches
